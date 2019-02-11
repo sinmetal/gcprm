@@ -5,12 +5,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log"
 	"os"
-	"time"
-
-	"github.com/k0kubun/pp"
-	"golang.org/x/oauth2/google"
-	"google.golang.org/api/cloudresourcemanager/v1"
 )
 
 type Param struct {
@@ -28,63 +24,44 @@ func main() {
 		os.Exit(1)
 	}
 
-	start := 3
-	end := 40
-	for i := start; i <= end; i++ {
+	for i := param.Start; i <= param.End; i++ {
 		ctx := context.Background()
 		projectID := fmt.Sprintf("%s%03d", param.ProjectIDPrefix, i)
 		fmt.Printf("Try Create %s Project\n", projectID)
-		if err := CreateProject(ctx, projectID, param.ParentID); err != nil {
-			fmt.Printf("failed CreateProject %+v\n", err)
-			os.Exit(1)
-		}
-		if err := SetBillingAccount(ctx, projectID, param.BillingAccountID); err != nil {
-			fmt.Printf("failed SetBillingAccount %+v\n", err)
-			os.Exit(1)
+		//if err := CreateProject(ctx, projectID, param.ParentID); err != nil {
+		//		//	fmt.Printf("failed CreateProject %+v\n", err)
+		//		//	os.Exit(1)
+		//		//}
+		//		//if err := SetBillingAccount(ctx, projectID, param.BillingAccountID); err != nil {
+		//		//	fmt.Printf("failed SetBillingAccount %+v\n", err)
+		//		//	os.Exit(1)
+		//		//}
+
+		//if err := CreateAppEngineApp(ctx, projectID); err != nil {
+		//	if gerr, ok := err.(*googleapi.Error); ok {
+		//		if gerr.Code == 409 {
+		//			fmt.Printf("%s is App Engine Alredy exits\n", projectID)
+		//		}
+		//	} else {
+		//		log.Fatalf("fatal create AppEngine. err=%+v\n", err)
+		//	}
+		//}
+
+		//p, err := GetProject(ctx, projectID)
+		//if err != nil {
+		//	log.Fatalf("fatal get project %s\n", projectID)
+		//}
+		//if err := EnableServices(ctx, p.ProjectNumber); err != nil {
+		//	log.Fatalf("fatal enable services %+v\n", err)
+		//}
+
+		if err := DeleteProject(ctx, projectID); err != nil {
+			log.Fatalf("fatal delete project. project id =%s. err=%+v\n", projectID, err)
 		}
 	}
 
 	fmt.Println("Finish !!")
 	os.Exit(0)
-}
-
-func CreateProject(ctx context.Context, projectID string, parentID string) error {
-	client, err := google.DefaultClient(ctx, cloudresourcemanager.CloudPlatformScope)
-	if err != nil {
-		return err
-	}
-	crm, err := cloudresourcemanager.New(client)
-	if err != nil {
-		return err
-	}
-
-	o, err := crm.Projects.Create(&cloudresourcemanager.Project{
-		ProjectId: projectID,
-		Name:      projectID,
-		Parent: &cloudresourcemanager.ResourceId{
-			Id:   parentID,
-			Type: "folder",
-		},
-	}).Do()
-	if err != nil {
-		return err
-	}
-	pp.Println(o)
-
-	for {
-		o, err := crm.Operations.Get(o.Name).Do()
-		if err != nil {
-			return err
-		}
-		if o.Done {
-			pp.Println(o)
-			break
-		}
-		fmt.Println("zzzz.......")
-		time.Sleep(10 * time.Second)
-	}
-
-	return nil
 }
 
 func getFlag() (*Param, error) {
